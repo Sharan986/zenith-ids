@@ -1,0 +1,217 @@
+Vouch
+Campus to Careers
+Turning Jharkhand's talent and tourism into local jobs by bridging education → skills → industry → employment.
+
+
+By Team Zenith (ARKA JAIN UNIVERSITY)
+Himadri Shekhar Goswami – Diploma 3rd 
+Gursharan Singh – BCA 1st 
+
+1
+
+Problem Definition
+Not Industry-Ready
+Theory-focused education with no real-world skills development.
+Limited Opportunities
+Industries restricted to Steel, Power, Mining, Automobile
+ with low job diversity.
+Broken Hiring System
+Resumes don't reflect real skills. Clarity of Job Description.
+Untapped Tourism Economy
+Culture, handicrafts, and nature exist but lack student involvement and MSME pipeline.
+Result: Talent leaves Jharkhand and economy stays underdeveloped
+2
+
+Insights
+Lakhs
+Large Student Base
+CEIC Data shows significant student population
+35-40%
+Urban employment
+PLFS 2023 data
+Periodic Labour Force Survey
+System Disconnection
+Weak MSME ecosystem (MSME Ministry, RBI)
+Jobs shift to metros (Bangalore, Pune, Hyderabad)
+Students ≠ Industry ≠ Tourism
+Insight: Jharkhand has talent + tourism + culture but no system connecting them to jobs.
+3
+
+Solution
+Test First. Hire Later.
+01
+Early Start
+Students join in 1st/2nd year
+02
+Skill Paths
+SDE, Data, Mechanical, Chemical, Fashion
+03
+Task-Based Learning
+Solve real problems with test cases
+04
+Real-World Integration
+Tourism projects, handicraft digitization, MSME problem solving
+Skill Portfolio
+Proof of capabilities
+Industry Readiness Score
+Quantified skill level
+Probation Simulator
+Real workplace scenarios
+4
+
+Impact & Execution
+Pilot Plan
+20-30 students
+Initial pilot cohort
+Jamshedpur / Ranchi
+Partner colleges
+Key Metrics
+50%
+Skill Development
+Students completing ≥2 skills
+20%
+Job Readiness
+Students reaching hireable level
+30%
+Local Opportunities
+Internships + local jobs secured
+Expected Outcomes (6–12 Months)
+Tourism + MSMEs: Digital growth and skilled workforce
+Migration reduction: More students placed in Jharkhand
+Vouch transforms Jharkhand from a talent exporter into a tourism-driven talent economy.
+5
+
+Business Model
+Freemium Model (Students)
+Free Tier
+View skill paths
+Required skills
+Courses
+Problem statements
+Premium (~₹xxx/month)
+Full roadmap access
+Task system + test cases
+Skill portfolio building
+Industry readiness score
+Probation simulator
+College Partnerships (B2B)
+Colleges pay to improve placement quality, track student skill growth, and provide structured learning.
+Focus: Not just placements, but industry-ready students.
+Future Revenue Streams
+MSME onboarding
+Hiring access for companies
+6
+
+Pilot Implementation(can be changed) – Frontend Flow (Role-Based)
+1. Landing Page
+Overview of platform
+Research on top skills & industries in Jharkhand
+Focus on MSMEs, tourism, and local employment
+Explanation of how the platform connects students, colleges, and industry
+
+Buttons:
+
+Login
+Register
+Explore skills / industries
+2. Role-Based Login / Signup
+
+User selects role:
+
+Student
+Industry / MSME / Tourism business
+College / Institution
+Admin
+
+Each role gets different dashboard.
+
+3. Student Flow
+
+Onboarding
+
+Select branch / interest / career path
+Platform generates skill roadmap
+
+Skill Page
+
+Recommended skills
+Courses / resources
+Suggested projects
+Task list
+
+Dashboard
+
+Skill progress
+Completed tasks
+Readiness score (basic in pilot)
+Suggested next steps
+
+Simulation / Task (pilot basic)
+
+Complete assignments / projects
+Score updated
+
+Profile
+
+Skills
+Completed work
+Score
+Visible to industry
+4. Industry / MSME / Tourism Flow
+
+Dashboard:
+
+Post internship / task / problem
+View student profiles
+Filter by skills / score / branch
+Send work request / internship offer
+
+Purpose:
+
+Find verified students
+Reduce training time
+Hire locally
+
+Pilot feature:
+
+Post task
+View student list
+5. College Flow
+
+Dashboard:
+
+View students from college
+Track skill progress
+See readiness stats
+Recommend skill paths (pilot basic)
+
+Purpose:
+
+Placement support
+Skill monitoring
+
+Pilot feature:
+
+View student list
+View progress
+6. Admin Flow
+Manage users
+Manage skills / courses
+Manage industries
+Manage tasks
+Approve content (optional)
+
+Pilot:
+
+Basic control panel
+7. Freemium Model (Pilot)
+Student → free
+Premium → roadmap / mentor / simulator (future)
+Industry → pay to post tasks (future)
+College → subscription (future)
+
+Pilot → only UI indication
+
+One-line pilot architecture
+
+Role-based platform where students follow skill roadmaps, industries post tasks, colleges track progress, and the system connects them through a shared dashboard with verified skill tracking.
