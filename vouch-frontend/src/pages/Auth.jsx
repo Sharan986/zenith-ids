@@ -5,6 +5,8 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import { useToast } from '../components/ToastContext';
+import { useAuth } from '../context/AuthContext';
+import { api } from '../utils/api';
 
 const roles = [
   { id: 'student', label: 'STUDENT', icon: User, desc: 'Learn skills & build portfolio', color: '#BEF264' },
@@ -22,30 +24,41 @@ const Auth = () => {
   const [selectedRole, setSelectedRole] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   
+  // Form State
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const { login: authLogin, register: authRegister } = useAuth();
 
   const handleRoleSelect = (roleId) => {
     setSelectedRole(roleId);
     setStep(2);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate network request
-    setTimeout(() => {
-      setIsLoading(false);
-      
+    try {
       if (mode === 'register') {
+        const { user, token } = await api.auth.register({ name, email, password, role: selectedRole });
+        authRegister(user, token);
         addToast(`Account created! Let's set up your profile.`, 'success');
         navigate(`/onboarding/${selectedRole}`);
       } else {
-        addToast(`Successfully logged in as ${roles.find(r => r.id === selectedRole).label}`, 'success');
-        navigate(`/dashboard/${selectedRole}`);
+        const { user, token } = await api.auth.login({ email, password });
+        authLogin(user, token);
+        addToast(`Successfully logged in as ${user.name}`, 'success');
+        navigate(`/dashboard/${user.role}`);
       }
-    }, 1500);
+    } catch (error) {
+      addToast(error.message || 'Authentication failed', 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -131,10 +144,33 @@ const Auth = () => {
             
             <form onSubmit={handleSubmit}>
               {mode === 'register' && (
-                <Input label="FULL NAME" placeholder="Jane Doe" required disabled={isLoading} />
+                <Input 
+                  label="FULL NAME" 
+                  placeholder="Jane Doe" 
+                  required 
+                  disabled={isLoading} 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
               )}
-              <Input label="EMAIL" type="email" placeholder="jane@example.com" required disabled={isLoading} />
-              <Input label="PASSWORD" type="password" placeholder="••••••••" required disabled={isLoading} />
+              <Input 
+                label="EMAIL" 
+                type="email" 
+                placeholder="jane@example.com" 
+                required 
+                disabled={isLoading} 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <Input 
+                label="PASSWORD" 
+                type="password" 
+                placeholder="••••••••" 
+                required 
+                disabled={isLoading} 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
               
               <Button 
                 type="submit" 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ToastProvider } from './components/ToastContext';
+import { AuthProvider } from './context/AuthContext';
 
 // Layouts and Components
 import Layout from './components/Layout';
@@ -19,28 +20,30 @@ import Portfolio from './pages/Portfolio';
 
 function App() {
   return (
-    <ToastProvider>
-      <Router>
-        <div className="app-container">
-          <Layout>
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/onboarding/:role" element={<Onboarding />} />
-              <Route path="/simulator" element={<Simulator />} />
-              <Route path="/tasks" element={<Marketplace />} />
-              <Route path="/portfolio/:id" element={<Portfolio />} />
-              
-              {/* Dashboard Routes */}
-              <Route path="/dashboard/student" element={<StudentDashboard />} />
-              <Route path="/dashboard/industry" element={<IndustryDashboard />} />
-              <Route path="/dashboard/college" element={<CollegeDashboard />} />
-              <Route path="/dashboard/admin" element={<AdminDashboard />} />
-            </Routes>
-          </Layout>
-        </div>
-      </Router>
-    </ToastProvider>
+    <AuthProvider>
+      <ToastProvider>
+        <Router>
+          <div className="app-container">
+            <Layout>
+              <Routes>
+                <Route path="/" element={<Landing />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/onboarding/:role" element={<Onboarding />} />
+                <Route path="/simulator" element={<Simulator />} />
+                <Route path="/tasks" element={<Marketplace />} />
+                <Route path="/portfolio/:id" element={<Portfolio />} />
+                
+                {/* Dashboard Routes */}
+                <Route path="/dashboard/student" element={<StudentDashboard />} />
+                <Route path="/dashboard/industry" element={<IndustryDashboard />} />
+                <Route path="/dashboard/college" element={<CollegeDashboard />} />
+                <Route path="/dashboard/admin" element={<AdminDashboard />} />
+              </Routes>
+            </Layout>
+          </div>
+        </Router>
+      </ToastProvider>
+    </AuthProvider>
   );
 }
 
