@@ -21,12 +21,30 @@ export default function Navbar() {
 
   useEffect(() => {
     const supabase = createClient();
+    
     supabase.auth.getUser().then(({ data }) => {
       if (data?.user) {
         setUser(data.user);
         setRole(data.user.user_metadata?.role || 'student');
+      } else {
+        setUser(null);
+        setRole(null);
       }
     });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        setRole(session.user.user_metadata?.role || 'student');
+      } else {
+        setUser(null);
+        setRole(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const isLanding = pathname === '/';
