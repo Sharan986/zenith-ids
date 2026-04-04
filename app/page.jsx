@@ -1,0 +1,278 @@
+'use client';
+
+import Link from 'next/link';
+import {
+  Zap, ArrowRight, ChevronRight, Rocket,
+  Target, Trophy, Users, Star, Code,
+  Briefcase, GraduationCap, Shield, Sparkles
+} from 'lucide-react';
+import Button from '@/components/Button';
+import Card from '@/components/Card';
+import Badge from '@/components/Badge';
+
+const marqueeWords = [
+  'FRONTEND', 'BACKEND', 'DEVOPS', 'DATA SCIENCE', 'AI/ML',
+  'MOBILE', 'CLOUD', 'SECURITY', 'BLOCKCHAIN', 'UI/UX',
+  'FRONTEND', 'BACKEND', 'DEVOPS', 'DATA SCIENCE', 'AI/ML',
+  'MOBILE', 'CLOUD', 'SECURITY', 'BLOCKCHAIN', 'UI/UX',
+];
+
+const steps = [
+  {
+    num: '01',
+    title: 'Choose a Path',
+    description: 'Explore curated roadmaps designed by industry experts. Pick the career trajectory that excites you.',
+    icon: Target,
+    color: 'lime',
+  },
+  {
+    num: '02',
+    title: 'Build Projects',
+    description: 'Complete real-world tasks and challenges. Build a portfolio that speaks louder than any resume.',
+    icon: Code,
+    color: 'purple',
+  },
+  {
+    num: '03',
+    title: 'Get Hired',
+    description: 'Industry partners review your work directly. Skip the queue — your skills are your ticket.',
+    icon: Trophy,
+    color: 'yellow',
+  },
+];
+
+const stats = [
+  { value: '500+', label: 'STUDENTS', icon: Users },
+  { value: '50+', label: 'INDUSTRY PARTNERS', icon: Briefcase },
+  { value: '200+', label: 'TASKS COMPLETED', icon: Star },
+  { value: '95%', label: 'PLACEMENT RATE', icon: Rocket },
+];
+
+export default function LandingPage() {
+  return (
+    <div className="overflow-hidden">
+      {/* ─── Hero Section ─────────────────────── */}
+      <section className="relative bg-lime border-b-4 border-black">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24 lg:py-32">
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-6 animate-fade-in-up stagger-1">
+              <Badge variant="dark">BETA</Badge>
+              <Badge variant="default">
+                <Sparkles size={12} className="mr-1" />
+                NOW LIVE
+              </Badge>
+            </div>
+
+            <h1 className="heading-brutal text-5xl sm:text-7xl lg:text-8xl xl:text-9xl mb-6 animate-fade-in-up stagger-2">
+              START YOUR
+              <br />
+              <span className="relative">
+                CAREER.
+                <svg className="absolute -bottom-2 left-0 w-full h-4" viewBox="0 0 400 12">
+                  <path d="M0 6 Q100 0 200 6 Q300 12 400 6" stroke="black" strokeWidth="3" fill="none" />
+                </svg>
+              </span>
+            </h1>
+
+            <p className="max-w-xl text-lg sm:text-xl font-mono font-bold mb-8 animate-fade-in-up stagger-3">
+              The platform that bridges the gap between
+              <span className="bg-black text-lime px-2 mx-1">campus learning</span>
+              and
+              <span className="bg-black text-purple px-2 mx-1">industry hiring</span>.
+            </p>
+
+            <div className="flex flex-wrap gap-4 animate-fade-in-up stagger-4">
+              <Link href="/auth?mode=register">
+                <Button variant="dark" size="lg" icon={ArrowRight} iconPosition="right">
+                  Get Started Free
+                </Button>
+              </Link>
+              <a href="#playbook">
+                <Button variant="outline" size="lg">
+                  How It Works
+                </Button>
+              </a>
+            </div>
+          </div>
+
+          {/* Decorative elements */}
+          <div className="absolute top-8 right-8 w-16 h-16 bg-purple border-brutal rotate-12 hidden lg:block" />
+          <div className="absolute bottom-12 right-24 w-12 h-12 bg-yellow border-brutal -rotate-6 hidden lg:block" />
+          <div className="absolute top-1/2 right-16 w-8 h-8 bg-black rotate-45 hidden lg:block" />
+        </div>
+      </section>
+
+      {/* ─── Marquee Ticker ───────────────────── */}
+      <section className="bg-black text-white border-b-4 border-black overflow-hidden py-4">
+        <div className="flex whitespace-nowrap animate-marquee">
+          {marqueeWords.map((word, i) => (
+            <span key={i} className="inline-flex items-center mx-4">
+              <span className="font-black text-sm tracking-widest">{word}</span>
+              <Zap size={14} className="text-lime ml-4" />
+            </span>
+          ))}
+        </div>
+      </section>
+
+      {/* ─── Stats Bar ────────────────────────── */}
+      <section className="border-b-4 border-black bg-white">
+        <div className="max-w-7xl mx-auto grid grid-cols-2 lg:grid-cols-4">
+          {stats.map((stat, i) => {
+            const Icon = stat.icon;
+            return (
+              <div
+                key={stat.label}
+                className={`
+                  p-6 sm:p-8 text-center
+                  ${i < 3 ? 'border-r-0 lg:border-r-2 border-black' : ''}
+                  ${i < 2 ? 'border-b-2 lg:border-b-0 border-black' : ''}
+                  ${i === 2 ? 'border-b-2 lg:border-b-0 border-black border-r-2 lg:border-r-2' : ''}
+                `}
+              >
+                <Icon size={24} className="mx-auto mb-2 text-muted" />
+                <div className="heading-brutal text-3xl sm:text-4xl mb-1">{stat.value}</div>
+                <div className="label-brutal text-muted">{stat.label}</div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ─── The Playbook ─────────────────────── */}
+      <section id="playbook" className="py-16 sm:py-24 bg-bg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12 sm:mb-16">
+            <Badge variant="dark" className="mb-4">THE PLAYBOOK</Badge>
+            <h2 className="heading-brutal text-4xl sm:text-5xl lg:text-6xl">
+              THREE STEPS TO
+              <br />
+              <span className="text-purple">YOUR DREAM JOB</span>
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
+            {steps.map((step, i) => {
+              const Icon = step.icon;
+              return (
+                <Card
+                  key={step.num}
+                  variant={step.color}
+                  padding="lg"
+                  className={`animate-fade-in-up stagger-${i + 1}`}
+                >
+                  <div className="flex items-start justify-between mb-6">
+                    <span className="heading-brutal text-6xl opacity-20">{step.num}</span>
+                    <div className="w-12 h-12 bg-black text-white flex items-center justify-center border-2 border-black">
+                      <Icon size={24} />
+                    </div>
+                  </div>
+                  <h3 className="heading-brutal text-2xl mb-3">{step.title}</h3>
+                  <p className="font-mono text-sm font-medium leading-relaxed">{step.description}</p>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Role Cards ───────────────────────── */}
+      <section className="py-16 sm:py-24 bg-white border-y-4 border-black">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12">
+            <h2 className="heading-brutal text-4xl sm:text-5xl mb-4">WHO IS VOUCH FOR?</h2>
+            <p className="font-mono text-sm text-muted max-w-lg mx-auto">
+              Whether you&apos;re a student, recruiter, or institution — there&apos;s a seat for you at the table.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-6">
+            <Card variant="lime" padding="lg" hoverable>
+              <GraduationCap size={32} className="mb-4" />
+              <h3 className="heading-brutal text-xl mb-2">Students</h3>
+              <p className="font-mono text-xs font-medium leading-relaxed">
+                Build real skills, complete projects, and create a verified portfolio that gets you hired.
+              </p>
+            </Card>
+            <Card variant="purple" padding="lg" hoverable>
+              <Briefcase size={32} className="mb-4" />
+              <h3 className="heading-brutal text-xl mb-2">Industry</h3>
+              <p className="font-mono text-xs font-medium leading-relaxed">
+                Post challenges, review work, and hire candidates who&apos;ve already proved their skills.
+              </p>
+            </Card>
+            <Card variant="yellow" padding="lg" hoverable>
+              <Shield size={32} className="mb-4" />
+              <h3 className="heading-brutal text-xl mb-2">Colleges</h3>
+              <p className="font-mono text-xs font-medium leading-relaxed">
+                Track student progress, boost placement rates, and partner with industry leaders.
+              </p>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── CTA Section ──────────────────────── */}
+      <section className="bg-black text-white py-16 sm:py-24">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
+          <h2 className="heading-brutal text-4xl sm:text-6xl lg:text-7xl mb-6">
+            STOP READING.
+            <br />
+            <span className="text-lime">START DOING.</span>
+          </h2>
+          <p className="font-mono text-sm text-muted-light mb-8 max-w-md mx-auto">
+            Join hundreds of students already building their careers on Vouch. Free to start, no credit card required.
+          </p>
+          <Link href="/auth?mode=register">
+            <Button variant="primary" size="lg" icon={Rocket} iconPosition="right">
+              Create Free Account
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      {/* ─── Footer ───────────────────────────── */}
+      <footer className="bg-white border-t-4 border-black">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+          <div className="grid sm:grid-cols-4 gap-8">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 bg-lime border-2 border-black flex items-center justify-center">
+                  <Zap size={16} />
+                </div>
+                <span className="heading-brutal text-lg">VOUCH</span>
+              </div>
+              <p className="font-mono text-xs text-muted">
+                Campus to Careers.
+                <br />
+                © {new Date().getFullYear()} Vouch
+              </p>
+            </div>
+            <div>
+              <h4 className="label-brutal mb-3">PLATFORM</h4>
+              <div className="flex flex-col gap-2">
+                <Link href="/discover" className="font-mono text-xs hover:text-lime transition-colors">Discover</Link>
+                <Link href="/tasks" className="font-mono text-xs hover:text-lime transition-colors">Tasks</Link>
+                <Link href="/simulator" className="font-mono text-xs hover:text-lime transition-colors">Simulator</Link>
+              </div>
+            </div>
+            <div>
+              <h4 className="label-brutal mb-3">COMPANY</h4>
+              <div className="flex flex-col gap-2">
+                <span className="font-mono text-xs text-muted">About (Coming Soon)</span>
+                <span className="font-mono text-xs text-muted">Blog (Coming Soon)</span>
+                <Link href="/pro" className="font-mono text-xs hover:text-lime transition-colors">Pricing</Link>
+              </div>
+            </div>
+            <div>
+              <h4 className="label-brutal mb-3">LEGAL</h4>
+              <div className="flex flex-col gap-2">
+                <span className="font-mono text-xs text-muted">Privacy Policy</span>
+                <span className="font-mono text-xs text-muted">Terms of Service</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
