@@ -45,7 +45,7 @@ export default function Navbar() {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [pathname]);
 
   const isLanding = pathname === '/';
   const isAuth = pathname === '/auth';
