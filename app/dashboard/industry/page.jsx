@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Briefcase, Plus, Users, Clock, CheckCircle, XCircle,
   Search, Star, Eye, Mail, Trophy, ArrowRight, Filter,
-  Send, ChevronDown
+  Send, ChevronDown, Loader2, ExternalLink
 } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
@@ -13,23 +13,13 @@ import Badge from '@/components/Badge';
 import Input from '@/components/Input';
 import Modal from '@/components/Modal';
 import { useToast } from '@/components/ToastContext';
-
-const mockStats = { myTasks: 8, pendingReviews: 5, totalStudents: 142 };
-const mockSubmissions = [
-  { id: 's1', student: 'Jane Smith', email: 'jane@uni.edu', branch: 'CS', task: 'Build a Todo App', content: 'https://github.com/jane/todo', submittedAt: '1 day ago', type: 'platform', difficulty: 'beginner', points: 15 },
-  { id: 's2', student: 'Mike Johnson', email: 'mike@uni.edu', branch: 'IT', task: 'REST API Design', content: 'https://github.com/mike/api', submittedAt: '3 days ago', type: 'industry', difficulty: 'intermediate', points: 25 },
-  { id: 's3', student: 'Sara Lee', email: 'sara@uni.edu', branch: 'CS', task: 'Auth System', content: 'https://github.com/sara/auth', submittedAt: '5 days ago', type: 'industry', difficulty: 'advanced', points: 40 },
-];
-const mockLeaderboard = [
-  { id: 'l1', name: 'Alex Chen', email: 'alex@uni.edu', branch: 'Computer Science', totalScore: 340, tasksCompleted: 12, interests: ['frontend', 'mobile'] },
-  { id: 'l2', name: 'Jane Smith', email: 'jane@uni.edu', branch: 'Information Technology', totalScore: 280, tasksCompleted: 9, interests: ['backend', 'devops'] },
-  { id: 'l3', name: 'Mike Johnson', email: 'mike@uni.edu', branch: 'Computer Science', totalScore: 210, tasksCompleted: 7, interests: ['fullstack'] },
-  { id: 'l4', name: 'Sara Lee', email: 'sara@uni.edu', branch: 'Electronics', totalScore: 185, tasksCompleted: 6, interests: ['ai-ml', 'data'] },
-  { id: 'l5', name: 'Tom Wilson', email: 'tom@uni.edu', branch: 'Computer Science', totalScore: 150, tasksCompleted: 5, interests: ['security'] },
-];
+import { getDashboardStats, getStudentLeaderboard } from '@/lib/actions/scores';
+import { getSubmissionsForReview, reviewSubmission } from '@/lib/actions/submissions';
+import { createTask } from '@/lib/actions/tasks';
 
 export default function IndustryDashboard() {
   const toast = useToast();
+  const [loading, setLoading] = useState(true);
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -39,13 +29,75 @@ export default function IndustryDashboard() {
   const [branchFilter, setBranchFilter] = useState('');
   const [reviewScore, setReviewScore] = useState(50);
   const [reviewFeedback, setReviewFeedback] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [creatingTask, setCreatingTask] = useState(false);
+
+  // Data states
+  const [stats, setStats] = useState({ myTasks: 0, pendingReviews: 0, totalStudents: 0 });
+  const [submissions, setSubmissions] = useState([]);
+  const [leaderboard, setLeaderboard] = useState([]);
 
   // Create task form
   const [taskForm, setTaskForm] = useState({
     title: '', description: '', type: 'industry', difficulty: 'intermediate', points: 25
   });
 
-  const filteredLeaderboard = mockLeaderboard.filter(s => {
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [statsRes, submissionsRes, leaderboardRes] = await Promise.all([
+          getDashboardStats(),
+          getSubmissionsForReview({ status: 'pending' }),
+          getStudentLeaderboard()
+        ]);
+        
+        if (statsRes?.data) setStats(statsRes.data);
+        if (submissionsRes?.data) {
+          setSubmissions(submissionsRes.data.map(s => ({
+            id: s.id,
+            student: s.users?.name || 'Unknown',
+            email: s.users?.email || '',
+            branch: s.users?.branch || 'N/A',
+            task: s.tasks?.title || 'Unknown Task',
+            content: s.content,
+            submittedAt: formatTimeAgo(s.created_at),
+            type: s.tasks?.type || 'platform',
+            difficulty: s.tasks?.difficulty || 'beginner',
+            points: s.tasks?.points || 0
+          })));
+        }
+        if (leaderboardRes?.data) {
+          setLeaderboard(leaderboardRes.data.map(s => ({
+            id: s.id,
+            name: s.name || 'Unknown',
+            email: s.email || '',
+            branch: s.branch || 'N/A',
+            totalScore: s.totalScore || 0,
+            tasksCompleted: s.tasksCompleted || 0,
+            interests: s.interests || []
+          })));
+        }
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+        toast.error('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  function formatTimeAgo(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'today';
+    if (diffDays === 1) return '1 day ago';
+    return `${diffDays} days ago`;
+  }
+
+  const filteredLeaderboard = leaderboard.filter(s => {
     const matchSearch = !searchQuery ||
       s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.email.toLowerCase().includes(searchQuery.toLowerCase());
@@ -53,18 +105,93 @@ export default function IndustryDashboard() {
     return matchSearch && matchBranch;
   });
 
-  const handleCreateTask = () => {
-    toast.success(`Task "${taskForm.title}" created!`);
-    setCreateTaskOpen(false);
-    setTaskForm({ title: '', description: '', type: 'industry', difficulty: 'intermediate', points: 25 });
+  const handleCreateTask = async () => {
+    if (!taskForm.title) return;
+    
+    setCreatingTask(true);
+    try {
+      const formData = new FormData();
+      formData.append('title', taskForm.title);
+      formData.append('description', taskForm.description);
+      formData.append('type', taskForm.type);
+      formData.append('difficulty', taskForm.difficulty);
+      formData.append('points', taskForm.points);
+      
+      const result = await createTask(formData);
+      
+      if (result.success) {
+        toast.success(`Task "${taskForm.title}" created!`);
+        setCreateTaskOpen(false);
+        setTaskForm({ title: '', description: '', type: 'industry', difficulty: 'intermediate', points: 25 });
+        // Refresh stats
+        const statsRes = await getDashboardStats();
+        if (statsRes?.data) setStats(statsRes.data);
+      } else {
+        toast.error(result.error || 'Failed to create task');
+      }
+    } catch (error) {
+      toast.error('Failed to create task');
+    } finally {
+      setCreatingTask(false);
+    }
   };
 
-  const handleReview = (status) => {
-    toast.success(`Submission ${status === 'approved' ? 'approved' : 'rejected'}!`);
-    setReviewOpen(false);
-    setReviewScore(50);
-    setReviewFeedback('');
+  const handleReview = async (status) => {
+    if (!selectedSubmission) return;
+    
+    setSubmittingReview(true);
+    try {
+      const formData = new FormData();
+      formData.append('status', status);
+      formData.append('score', status === 'approved' ? reviewScore : 0);
+      formData.append('feedback', reviewFeedback);
+      
+      const result = await reviewSubmission(selectedSubmission.id, formData);
+      
+      if (result.success) {
+        toast.success(`Submission ${status === 'approved' ? 'approved' : 'rejected'}!`);
+        setReviewOpen(false);
+        setReviewScore(50);
+        setReviewFeedback('');
+        // Refresh submissions
+        const submissionsRes = await getSubmissionsForReview({ status: 'pending' });
+        if (submissionsRes?.data) {
+          setSubmissions(submissionsRes.data.map(s => ({
+            id: s.id,
+            student: s.users?.name || 'Unknown',
+            email: s.users?.email || '',
+            branch: s.users?.branch || 'N/A',
+            task: s.tasks?.title || 'Unknown Task',
+            content: s.content,
+            submittedAt: formatTimeAgo(s.created_at),
+            type: s.tasks?.type || 'platform',
+            difficulty: s.tasks?.difficulty || 'beginner',
+            points: s.tasks?.points || 0
+          })));
+        }
+        // Refresh stats
+        const statsRes = await getDashboardStats();
+        if (statsRes?.data) setStats(statsRes.data);
+      } else {
+        toast.error(result.error || 'Failed to review submission');
+      }
+    } catch (error) {
+      toast.error('Failed to review submission');
+    } finally {
+      setSubmittingReview(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex items-center justify-center min-h-[50vh]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 size={32} className="animate-spin text-purple" />
+          <span className="font-mono text-sm text-muted">Loading dashboard...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
@@ -89,9 +216,9 @@ export default function IndustryDashboard() {
       {/* Metrics */}
       <div className="grid grid-cols-3 gap-4 mb-8">
         {[
-          { label: 'MY TASKS', value: mockStats.myTasks, icon: Briefcase, color: 'purple' },
-          { label: 'PENDING REVIEWS', value: mockStats.pendingReviews, icon: Clock, color: 'yellow' },
-          { label: 'TOTAL STUDENTS', value: mockStats.totalStudents, icon: Users, color: 'lime' },
+          { label: 'MY TASKS', value: stats.myTasks, icon: Briefcase, color: 'purple' },
+          { label: 'PENDING REVIEWS', value: stats.pendingReviews, icon: Clock, color: 'yellow' },
+          { label: 'TOTAL STUDENTS', value: stats.totalStudents, icon: Users, color: 'lime' },
         ].map(stat => {
           const Icon = stat.icon;
           return (
@@ -112,7 +239,7 @@ export default function IndustryDashboard() {
             PENDING SUBMISSIONS
           </h2>
           <div className="flex flex-col gap-3">
-            {mockSubmissions.map(sub => (
+            {submissions.length > 0 ? submissions.map(sub => (
               <Card key={sub.id} variant="default">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
@@ -141,7 +268,11 @@ export default function IndustryDashboard() {
                   </Button>
                 </div>
               </Card>
-            ))}
+            )) : (
+              <Card variant="muted">
+                <p className="font-mono text-xs text-muted text-center py-4">No pending submissions to review.</p>
+              </Card>
+            )}
           </div>
         </div>
 
@@ -268,8 +399,14 @@ export default function IndustryDashboard() {
           </div>
           <div className="flex gap-3 mt-2">
             <Button variant="outline" onClick={() => setCreateTaskOpen(false)}>Cancel</Button>
-            <Button variant="primary" fullWidth icon={Plus} onClick={handleCreateTask} disabled={!taskForm.title}>
-              Create Task
+            <Button 
+              variant="primary" 
+              fullWidth 
+              icon={creatingTask ? Loader2 : Plus} 
+              onClick={handleCreateTask} 
+              disabled={!taskForm.title || creatingTask}
+            >
+              {creatingTask ? 'Creating...' : 'Create Task'}
             </Button>
           </div>
         </div>
@@ -318,10 +455,21 @@ export default function IndustryDashboard() {
               />
             </div>
             <div className="flex gap-3">
-              <Button variant="danger" icon={XCircle} onClick={() => handleReview('rejected')}>
+              <Button 
+                variant="danger" 
+                icon={submittingReview ? Loader2 : XCircle} 
+                onClick={() => handleReview('rejected')}
+                disabled={submittingReview}
+              >
                 Reject
               </Button>
-              <Button variant="primary" fullWidth icon={CheckCircle} onClick={() => handleReview('approved')}>
+              <Button 
+                variant="primary" 
+                fullWidth 
+                icon={submittingReview ? Loader2 : CheckCircle} 
+                onClick={() => handleReview('approved')}
+                disabled={submittingReview}
+              >
                 Approve
               </Button>
             </div>

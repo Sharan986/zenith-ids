@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Trophy, Zap, Star, CheckCircle, Clock, ArrowRight,
-  BookOpen, ExternalLink, Send, Crown, Rocket, Target
+  BookOpen, ExternalLink, Send, Crown, Rocket, Target, Loader2, Map
 } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
@@ -12,47 +12,113 @@ import Badge from '@/components/Badge';
 import Input from '@/components/Input';
 import Modal from '@/components/Modal';
 import { useToast } from '@/components/ToastContext';
-
-// Mock data for demo
-const mockUser = { name: 'Alex Chen', email: 'alex@example.com', subscription_tier: 'free' };
-const mockStats = { totalScore: 340, tasksCompleted: 12, tasksPending: 3, tasksAvailable: 28 };
-const mockRoadmap = {
-  title: 'Frontend Developer',
-  skills: [
-    { name: 'HTML & CSS', resources: ['https://developer.mozilla.org'] },
-    { name: 'JavaScript', resources: ['https://javascript.info'] },
-    { name: 'React', resources: ['https://react.dev'] },
-    { name: 'TypeScript', resources: ['https://typescriptlang.org'] },
-    { name: 'Testing', resources: ['https://jestjs.io'] },
-  ]
-};
-const mockTasks = [
-  { id: '1', title: 'Build a Todo App', type: 'platform', difficulty: 'beginner', points: 15, description: 'Create a fully functional todo application with CRUD operations.' },
-  { id: '2', title: 'REST API Design', type: 'industry', difficulty: 'intermediate', points: 25, description: 'Design and document a RESTful API for an e-commerce platform.' },
-  { id: '3', title: 'Landing Page Clone', type: 'platform', difficulty: 'beginner', points: 10, description: 'Recreate a modern SaaS landing page with responsive design.' },
-  { id: '4', title: 'Auth System', type: 'industry', difficulty: 'advanced', points: 40, description: 'Implement JWT-based authentication with refresh tokens.' },
-];
-const mockPending = [
-  { id: 'p1', task: 'Portfolio Website', submittedAt: '2 days ago', status: 'pending' },
-  { id: 'p2', task: 'API Integration', submittedAt: '5 days ago', status: 'pending' },
-];
+import { getDashboardStats } from '@/lib/actions/scores';
+import { getMyRoadmap } from '@/lib/actions/roadmaps';
+import { getMyRoadmapTasks } from '@/lib/actions/tasks';
+import { getMySubmissions, submitTask } from '@/lib/actions/submissions';
+import { getCurrentUser } from '@/lib/actions/auth';
 
 export default function StudentDashboard() {
   const toast = useToast();
   const [submitModalOpen, setSubmitModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [submitUrl, setSubmitUrl] = useState('');
-  const [user] = useState(mockUser);
-  const [stats] = useState(mockStats);
-  const [roadmap] = useState(mockRoadmap);
-  const [tasks] = useState(mockTasks);
-  const [pending] = useState(mockPending);
+  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  const [user, setUser] = useState(null);
+  const [stats, setStats] = useState({ totalScore: 0, tasksCompleted: 0, tasksPending: 0, tasksAvailable: 0 });
+  const [roadmap, setRoadmap] = useState(null);
+  const [tasks, setTasks] = useState([]);
+  const [pending, setPending] = useState([]);
 
-  const handleSubmit = () => {
-    if (!submitUrl) return;
-    toast.success(`Submitted work for "${selectedTask?.title}"!`);
-    setSubmitModalOpen(false);
-    setSubmitUrl('');
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [userRes, statsRes, roadmapRes, tasksRes, submissionsRes] = await Promise.all([
+          getCurrentUser(),
+          getDashboardStats(),
+          getMyRoadmap(),
+          getMyRoadmapTasks(),
+          getMySubmissions()
+        ]);
+        
+        if (userRes?.data) setUser(userRes.data);
+        if (statsRes?.data) setStats(statsRes.data);
+        if (roadmapRes?.data) setRoadmap(roadmapRes.data);
+        if (tasksRes?.data) setTasks(tasksRes.data.slice(0, 4)); // Show first 4 tasks
+        
+        // Filter for pending submissions
+        if (submissionsRes?.data) {
+          const pendingSubmissions = submissionsRes.data
+            .filter(s => s.status === 'pending')
+            .map(s => ({
+              id: s.id,
+              task: s.tasks?.title || 'Unknown Task',
+              submittedAt: formatTimeAgo(s.created_at),
+              status: s.status
+            }));
+          setPending(pendingSubmissions);
+        }
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+        toast.error('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  function formatTimeAgo(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'today';
+    if (diffDays === 1) return '1 day ago';
+    return `${diffDays} days ago`;
+  }
+
+  const handleSubmit = async () => {
+    if (!submitUrl || !selectedTask) return;
+    
+    setSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append('task_id', selectedTask.id);
+      formData.append('content', submitUrl);
+      
+      const result = await submitTask(formData);
+      
+      if (result.success) {
+        toast.success(`Submitted work for "${selectedTask.title}"!`);
+        setSubmitModalOpen(false);
+        setSubmitUrl('');
+        // Refresh pending submissions
+        const submissionsRes = await getMySubmissions();
+        if (submissionsRes?.data) {
+          const pendingSubmissions = submissionsRes.data
+            .filter(s => s.status === 'pending')
+            .map(s => ({
+              id: s.id,
+              task: s.tasks?.title || 'Unknown Task',
+              submittedAt: formatTimeAgo(s.created_at),
+              status: s.status
+            }));
+          setPending(pendingSubmissions);
+        }
+        // Refresh stats
+        const statsRes = await getDashboardStats();
+        if (statsRes?.data) setStats(statsRes.data);
+      } else {
+        toast.error(result.error || 'Failed to submit task');
+      }
+    } catch (error) {
+      toast.error('Failed to submit task');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const difficultyColor = (d) => {
@@ -61,6 +127,29 @@ export default function StudentDashboard() {
     return 'purple';
   };
 
+  // Parse roadmap skills from curriculum array or JSON
+  const getRoadmapSkills = () => {
+    if (!roadmap) return [];
+    if (roadmap.curriculum && Array.isArray(roadmap.curriculum)) {
+      return roadmap.curriculum.map(skill => ({ name: skill, resources: [] }));
+    }
+    if (roadmap.skills && Array.isArray(roadmap.skills)) {
+      return roadmap.skills;
+    }
+    return [];
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex items-center justify-center min-h-[50vh]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 size={32} className="animate-spin text-lime" />
+          <span className="font-mono text-sm text-muted">Loading dashboard...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       {/* Welcome Header */}
@@ -68,7 +157,7 @@ export default function StudentDashboard() {
         <div>
           <div className="flex items-center gap-3 mb-2">
             <h1 className="heading-brutal text-3xl sm:text-4xl">
-              HEY, {user.name?.split(' ')[0]?.toUpperCase() || 'THERE'}!
+              HEY, {user?.name?.split(' ')[0]?.toUpperCase() || 'THERE'}!
             </h1>
             <Badge variant="lime">
               <Trophy size={12} className="mr-1" />
@@ -78,7 +167,7 @@ export default function StudentDashboard() {
           <p className="font-mono text-sm text-muted">Ready to level up today?</p>
         </div>
         <div className="flex gap-3">
-          {user.subscription_tier !== 'pro' && (
+          {user?.subscription_tier !== 'pro' && (
             <Link href="/pro">
               <Button variant="purple" size="sm" icon={Crown}>
                 Upgrade to PRO
@@ -123,32 +212,45 @@ export default function StudentDashboard() {
                 ACTIVE
               </Badge>
             </div>
-            <h3 className="font-black text-xl uppercase mb-4">{roadmap.title}</h3>
-            <div className="flex flex-col gap-2">
-              {roadmap.skills.map((skill, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between px-3 py-2 bg-bg border-2 border-black/10"
-                >
-                  <span className="font-mono text-xs font-bold">{skill.name}</span>
-                  {skill.resources?.[0] && (
-                    <a
-                      href={skill.resources[0]}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-muted hover:text-lime transition-colors"
-                    >
-                      <ExternalLink size={12} />
-                    </a>
-                  )}
-                </div>
-              ))}
+            <h3 className="font-black text-xl uppercase mb-4">{roadmap?.title || 'No Roadmap Selected'}</h3>
+            {roadmap ? (
+              <div className="flex flex-col gap-2">
+                {getRoadmapSkills().map((skill, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between px-3 py-2 bg-bg border-2 border-black/10"
+                  >
+                    <span className="font-mono text-xs font-bold">{typeof skill === 'string' ? skill : skill.name}</span>
+                    {skill.resources?.[0] && (
+                      <a
+                        href={skill.resources[0]}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-muted hover:text-lime transition-colors"
+                      >
+                        <ExternalLink size={12} />
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="font-mono text-xs text-muted">Choose a roadmap to get started.</p>
+            )}
+            <div className="flex gap-2 mt-4">
+              {roadmap?.id && (
+                <Link href={`/roadmap/${roadmap.id}`} className="flex-1">
+                  <Button variant="primary" size="sm" fullWidth icon={Map}>
+                    View Roadmap
+                  </Button>
+                </Link>
+              )}
+              <Link href="/discover" className={roadmap?.id ? 'flex-1' : 'flex-1'}>
+                <Button variant="outline" size="sm" fullWidth icon={ArrowRight} iconPosition="right">
+                  {roadmap?.id ? 'Change' : 'Explore Roadmaps'}
+                </Button>
+              </Link>
             </div>
-            <Link href="/discover" className="block mt-4">
-              <Button variant="outline" size="sm" fullWidth icon={ArrowRight} iconPosition="right">
-                Explore Roadmaps
-              </Button>
-            </Link>
           </Card>
 
           {/* Pending Reviews */}
@@ -248,11 +350,11 @@ export default function StudentDashboard() {
               <Button
                 variant="primary"
                 fullWidth
-                icon={Send}
+                icon={submitting ? Loader2 : Send}
                 onClick={handleSubmit}
-                disabled={!submitUrl}
+                disabled={!submitUrl || submitting}
               >
-                Submit Work
+                {submitting ? 'Submitting...' : 'Submit Work'}
               </Button>
             </div>
           </div>

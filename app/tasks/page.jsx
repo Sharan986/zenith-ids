@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Search, Star, Send, Code, Briefcase, Zap,
-  Trophy, Filter, CheckCircle, Globe
+  Trophy, Filter, CheckCircle, Globe, Loader2
 } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
@@ -11,6 +11,8 @@ import Badge from '@/components/Badge';
 import Input from '@/components/Input';
 import Modal from '@/components/Modal';
 import { useToast } from '@/components/ToastContext';
+import { getTasks } from '@/lib/actions/tasks';
+import { submitTask, getMySubmissions } from '@/lib/actions/submissions';
 
 const filters = [
   { id: 'all', label: 'All' },
@@ -21,17 +23,6 @@ const filters = [
   { id: 'advanced', label: 'Advanced' },
 ];
 
-const mockTasks = [
-  { id: '1', title: 'Build a Todo App', type: 'platform', difficulty: 'beginner', points: 15, description: 'Create a fully functional todo application with CRUD operations, localStorage persistence, and responsive design.', roadmap: 'Frontend Developer', submitted: false },
-  { id: '2', title: 'REST API Design', type: 'industry', difficulty: 'intermediate', points: 25, description: 'Design and document a RESTful API for an e-commerce platform with authentication, pagination, and error handling.', roadmap: 'Backend Developer', submitted: false },
-  { id: '3', title: 'Landing Page Clone', type: 'platform', difficulty: 'beginner', points: 10, description: 'Recreate a modern SaaS landing page with responsive design, animations, and semantic HTML.', roadmap: 'Frontend Developer', submitted: true },
-  { id: '4', title: 'Auth System', type: 'industry', difficulty: 'advanced', points: 40, description: 'Implement JWT-based authentication with refresh tokens, password reset, and OAuth2 integration.', roadmap: 'Full Stack', submitted: false },
-  { id: '5', title: 'Data Pipeline', type: 'industry', difficulty: 'advanced', points: 50, description: 'Build an ETL pipeline that processes CSV data, transforms it, and loads into a PostgreSQL database.', roadmap: 'Data Science', submitted: false },
-  { id: '6', title: 'Chat Interface', type: 'platform', difficulty: 'intermediate', points: 20, description: 'Build a real-time chat interface with message bubbles, typing indicators, and emoji support.', roadmap: 'Frontend Developer', submitted: true },
-  { id: '7', title: 'CI/CD Pipeline', type: 'industry', difficulty: 'intermediate', points: 30, description: 'Set up a complete CI/CD pipeline with GitHub Actions, Docker, and automated testing.', roadmap: 'DevOps', submitted: false },
-  { id: '8', title: 'Portfolio Website', type: 'platform', difficulty: 'beginner', points: 10, description: 'Create a personal developer portfolio with project showcases, contact form, and dark mode.', roadmap: 'Frontend Developer', submitted: false },
-];
-
 const typeIcon = (type) => {
   if (type === 'industry') return Briefcase;
   if (type === 'platform') return Code;
@@ -40,13 +31,53 @@ const typeIcon = (type) => {
 
 export default function TaskMarketplace() {
   const toast = useToast();
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
   const [submitOpen, setSubmitOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [submitUrl, setSubmitUrl] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  
+  const [tasks, setTasks] = useState([]);
+  const [submittedTaskIds, setSubmittedTaskIds] = useState(new Set());
 
-  const filtered = mockTasks.filter(task => {
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [tasksRes, submissionsRes] = await Promise.all([
+          getTasks(),
+          getMySubmissions()
+        ]);
+        
+        if (tasksRes?.data) {
+          setTasks(tasksRes.data.map(t => ({
+            id: t.id,
+            title: t.title,
+            type: t.type || 'platform',
+            difficulty: t.difficulty || 'beginner',
+            points: t.points || 0,
+            description: t.description || '',
+            roadmap: t.roadmaps?.title || null
+          })));
+        }
+        
+        // Track which tasks the user has already submitted
+        if (submissionsRes?.data) {
+          const submittedIds = new Set(submissionsRes.data.map(s => s.task_id));
+          setSubmittedTaskIds(submittedIds);
+        }
+      } catch (error) {
+        console.error('Error loading tasks:', error);
+        toast.error('Failed to load tasks');
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  const filtered = tasks.filter(task => {
     const matchSearch = !search ||
       task.title.toLowerCase().includes(search.toLowerCase()) ||
       task.description.toLowerCase().includes(search.toLowerCase());
@@ -56,14 +87,45 @@ export default function TaskMarketplace() {
     return matchSearch && matchFilter;
   });
 
-  const handleSubmit = () => {
-    if (!submitUrl) return;
-    toast.success(`Work submitted for "${selectedTask?.title}"!`);
-    setSubmitOpen(false);
-    setSubmitUrl('');
+  const handleSubmit = async () => {
+    if (!submitUrl || !selectedTask) return;
+    
+    setSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append('task_id', selectedTask.id);
+      formData.append('content', submitUrl);
+      
+      const result = await submitTask(formData);
+      
+      if (result.success) {
+        toast.success(`Work submitted for "${selectedTask.title}"!`);
+        setSubmitOpen(false);
+        setSubmitUrl('');
+        // Mark task as submitted
+        setSubmittedTaskIds(prev => new Set([...prev, selectedTask.id]));
+      } else {
+        toast.error(result.error || 'Failed to submit task');
+      }
+    } catch (error) {
+      toast.error('Failed to submit task');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const diffColor = (d) => d === 'beginner' ? 'lime' : d === 'intermediate' ? 'yellow' : 'purple';
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex items-center justify-center min-h-[50vh]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 size={32} className="animate-spin text-lime" />
+          <span className="font-mono text-sm text-muted">Loading tasks...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
@@ -110,11 +172,12 @@ export default function TaskMarketplace() {
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {filtered.map(task => {
           const TypeIcon = typeIcon(task.type);
+          const isSubmitted = submittedTaskIds.has(task.id);
           return (
             <Card
               key={task.id}
-              variant={task.submitted ? 'muted' : 'default'}
-              className={`flex flex-col ${task.submitted ? 'opacity-70' : ''}`}
+              variant={isSubmitted ? 'muted' : 'default'}
+              className={`flex flex-col ${isSubmitted ? 'opacity-70' : ''}`}
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="w-10 h-10 bg-bg border-2 border-black flex items-center justify-center">
@@ -140,7 +203,7 @@ export default function TaskMarketplace() {
                   <Badge variant="default" size="sm">{task.roadmap}</Badge>
                 )}
               </div>
-              {task.submitted ? (
+              {isSubmitted ? (
                 <Button variant="outline" fullWidth disabled size="sm" icon={CheckCircle}>
                   Submitted
                 </Button>
@@ -192,8 +255,14 @@ export default function TaskMarketplace() {
             />
             <div className="mt-6 flex gap-3">
               <Button variant="outline" onClick={() => setSubmitOpen(false)}>Cancel</Button>
-              <Button variant="primary" fullWidth icon={Send} onClick={handleSubmit} disabled={!submitUrl}>
-                Submit Work
+              <Button 
+                variant="primary" 
+                fullWidth 
+                icon={submitting ? Loader2 : Send} 
+                onClick={handleSubmit} 
+                disabled={!submitUrl || submitting}
+              >
+                {submitting ? 'Submitting...' : 'Submit Work'}
               </Button>
             </div>
           </div>

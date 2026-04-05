@@ -30,7 +30,7 @@ const freeTier = {
 
 const proTier = {
   name: 'Pro',
-  price: '$9',
+  price: 'Rs xxx',
   period: '/month',
   description: 'Unlock full career potential.',
   features: [

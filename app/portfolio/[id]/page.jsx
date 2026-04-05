@@ -1,50 +1,89 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import {
   Trophy, Star, CheckCircle, Mail, Share2, ExternalLink,
-  BookOpen, Crown, Clock, GraduationCap, Copy
+  BookOpen, Crown, Clock, GraduationCap, Copy, Loader2
 } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
 import { useToast } from '@/components/ToastContext';
-
-// Mock data
-const mockProfile = {
-  name: 'Alex Chen',
-  email: 'alex.chen@university.edu',
-  branch: 'Computer Science',
-  interests: ['frontend', 'mobile', 'ai-ml'],
-  subscription_tier: 'pro',
-  roadmap: 'Frontend Developer',
-  totalScore: 340,
-  tasksCompleted: 12,
-};
-
-const mockCompleted = [
-  { id: '1', task: 'Build a Todo App', type: 'platform', difficulty: 'beginner', points: 15, score: 14, feedback: 'Clean code, well-structured components. Great use of state management.', content: 'https://github.com/alexchen/todo-app' },
-  { id: '2', task: 'REST API Design', type: 'industry', difficulty: 'intermediate', points: 25, score: 23, feedback: 'Excellent API design. Good error handling and documentation.', content: 'https://github.com/alexchen/api-design' },
-  { id: '3', task: 'Landing Page Clone', type: 'platform', difficulty: 'beginner', points: 10, score: 10, feedback: 'Pixel-perfect reproduction. Responsive design is spot on.', content: 'https://github.com/alexchen/landing-clone' },
-  { id: '4', task: 'Auth System', type: 'industry', difficulty: 'advanced', points: 40, score: 38, feedback: 'Robust implementation. Proper JWT handling and security measures.', content: 'https://github.com/alexchen/auth-system' },
-  { id: '5', task: 'Chat Interface', type: 'platform', difficulty: 'intermediate', points: 20, score: 18, feedback: 'Good real-time implementation. Nice UI touches.', content: 'https://github.com/alexchen/chat-ui' },
-];
-
-const mockPending = [
-  { id: 'p1', task: 'CI/CD Pipeline', type: 'industry', difficulty: 'intermediate', points: 30, submittedAt: '2 days ago' },
-  { id: 'p2', task: 'Data Pipeline', type: 'industry', difficulty: 'advanced', points: 50, submittedAt: '4 days ago' },
-];
+import { getPublicStudentProfile } from '@/lib/actions/scores';
 
 export default function PortfolioPage() {
   const params = useParams();
   const toast = useToast();
-  const profile = mockProfile;
-  const completed = mockCompleted;
-  const pending = mockPending;
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState(null);
+  const [completed, setCompleted] = useState([]);
+  const [pending, setPending] = useState([]);
 
-  const initials = profile.name?.split(' ').map(n => n[0]).join('') || '?';
-  const readinessScore = Math.round((profile.totalScore / (profile.tasksCompleted * 30)) * 100);
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const result = await getPublicStudentProfile(params.id);
+        if (result?.data) {
+          setProfile({
+            name: result.data.name || 'Unknown User',
+            email: result.data.email || '',
+            branch: result.data.branch || 'N/A',
+            interests: result.data.interests || [],
+            subscription_tier: result.data.subscription_tier || 'free',
+            roadmap: result.data.current_roadmap?.title || 'No roadmap selected',
+            totalScore: result.data.totalScore || 0,
+            tasksCompleted: result.data.tasksCompleted || 0
+          });
+          
+          // Process completed submissions
+          if (result.data.completedSubmissions) {
+            setCompleted(result.data.completedSubmissions.map(s => ({
+              id: s.id,
+              task: s.tasks?.title || 'Unknown Task',
+              type: s.tasks?.type || 'platform',
+              difficulty: s.tasks?.difficulty || 'beginner',
+              points: s.tasks?.points || 0,
+              score: s.score || 0,
+              feedback: s.feedback || '',
+              content: s.content || ''
+            })));
+          }
+          
+          // Process pending submissions
+          if (result.data.pendingSubmissions) {
+            setPending(result.data.pendingSubmissions.map(s => ({
+              id: s.id,
+              task: s.tasks?.title || 'Unknown Task',
+              type: s.tasks?.type || 'platform',
+              difficulty: s.tasks?.difficulty || 'beginner',
+              points: s.tasks?.points || 0,
+              submittedAt: formatTimeAgo(s.created_at)
+            })));
+          }
+        } else {
+          toast.error('User profile not found');
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error);
+        toast.error('Failed to load profile');
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, [params.id]);
+
+  function formatTimeAgo(dateString) {
+    if (!dateString) return 'recently';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'today';
+    if (diffDays === 1) return '1 day ago';
+    return `${diffDays} days ago`;
+  }
 
   const handleShare = () => {
     navigator.clipboard?.writeText(window.location.href);
@@ -52,11 +91,42 @@ export default function PortfolioPage() {
   };
 
   const handleHire = () => {
+    if (!profile?.email) {
+      toast.error('Email not available');
+      return;
+    }
     toast.info(`Opening email to ${profile.email}...`);
     window.open(`mailto:${profile.email}?subject=Opportunity from Vouch&body=Hi ${profile.name},`);
   };
 
   const diffColor = (d) => d === 'beginner' ? 'lime' : d === 'intermediate' ? 'yellow' : 'purple';
+
+  if (loading) {
+    return (
+      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 size={32} className="animate-spin text-lime" />
+          <span className="font-mono text-sm text-muted">Loading portfolio...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="heading-brutal text-2xl mb-2">PROFILE NOT FOUND</h2>
+          <p className="font-mono text-sm text-muted">This user doesn&apos;t exist or their profile is private.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const initials = profile.name?.split(' ').map(n => n[0]).join('') || '?';
+  const readinessScore = profile.tasksCompleted > 0 
+    ? Math.round((profile.totalScore / (profile.tasksCompleted * 30)) * 100)
+    : 0;
 
   return (
     <div className="min-h-[calc(100vh-64px)]">
@@ -158,7 +228,7 @@ export default function PortfolioPage() {
               <Badge variant="lime" size="sm">{completed.length}</Badge>
             </h2>
             <div className="flex flex-col gap-4 mb-8">
-              {completed.map(sub => (
+              {completed.length > 0 ? completed.map(sub => (
                 <Card key={sub.id} variant="default">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
@@ -178,18 +248,24 @@ export default function PortfolioPage() {
                         </p>
                       )}
                     </div>
-                    <a
-                      href={sub.content}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 px-3 py-2 border-2 border-black font-mono text-xs font-bold uppercase hover:bg-lime transition-colors"
-                    >
-                      <ExternalLink size={12} />
-                      View
-                    </a>
+                    {sub.content && (
+                      <a
+                        href={sub.content}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 px-3 py-2 border-2 border-black font-mono text-xs font-bold uppercase hover:bg-lime transition-colors"
+                      >
+                        <ExternalLink size={12} />
+                        View
+                      </a>
+                    )}
                   </div>
                 </Card>
-              ))}
+              )) : (
+                <Card variant="muted" padding="default">
+                  <p className="font-mono text-xs text-muted text-center py-4">No completed tasks yet.</p>
+                </Card>
+              )}
             </div>
 
             {/* Pending */}

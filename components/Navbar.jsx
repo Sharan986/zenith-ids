@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Menu, X, Zap, LogOut, User, LayoutDashboard,
   Search, Compass, Trophy, Briefcase, GraduationCap,
-  Shield
+  Shield, Building2
 } from 'lucide-react';
 import Badge from './Badge';
 import Button from './Button';
@@ -66,6 +66,7 @@ export default function Navbar() {
     { href: dashboardPath, label: 'Dashboard', icon: LayoutDashboard },
     { href: '/tasks', label: 'Tasks', icon: Briefcase },
     { href: '/discover', label: 'Discover', icon: Compass },
+    { href: '/marketplace', label: 'Jobs', icon: Building2 },
     { href: '/simulator', label: 'Simulator', icon: Zap },
   ] : [];
 

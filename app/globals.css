@@ -226,3 +226,30 @@ body {
 .toast-exit {
   animation: fadeIn 0.3s ease reverse forwards;
 }
+
+/* ─── React Flow Overrides ────────────────── */
+.react-flow__node {
+  cursor: pointer;
+}
+
+.react-flow__controls {
+  border: 2px solid var(--color-black) !important;
+  box-shadow: var(--shadow-brutal) !important;
+}
+
+.react-flow__controls-button {
+  border: none !important;
+  border-bottom: 1px solid var(--color-black) !important;
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none !important;
+}
+
+.react-flow__minimap {
+  border: 2px solid var(--color-black) !important;
+}
+
+.border-3 {
+  border-width: 3px;
+}
