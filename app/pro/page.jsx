@@ -1,15 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import {
-  Crown, Check, X, Zap, Trophy, Star,
-  Code, Shield, Rocket, Gift, Sparkles
+  Crown, Check, X, Zap, Star,
+  Rocket, Sparkles
 } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
 import { useToast } from '@/components/ToastContext';
+import { PRO_PLAN_PRICE_DISPLAY } from '@/lib/plans';
 
 const freeTier = {
   name: 'Basic',
@@ -30,7 +30,7 @@ const freeTier = {
 
 const proTier = {
   name: 'Pro',
-  price: 'Rs xxx',
+  price: PRO_PLAN_PRICE_DISPLAY,
   period: '/month',
   description: 'Unlock full career potential.',
   features: [
@@ -47,43 +47,28 @@ const proTier = {
 };
 
 export default function ProPage() {
-  const router = useRouter();
   const toast = useToast();
-  const [isPro, setIsPro] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleUpgrade = async () => {
     setLoading(true);
-    // Simulate checkout
-    await new Promise(r => setTimeout(r, 1500));
-    setIsPro(true);
-    toast.success('Welcome to PRO! 🎉');
-    setLoading(false);
-  };
+    try {
+      const res = await fetch('/api/phonepe/initiate', { method: 'POST' });
+      const data = await res.json();
 
-  if (isPro) {
-    return (
-      <div className="min-h-[calc(100vh-64px)] bg-bg flex items-center justify-center p-4">
-        <Card variant="purple" padding="lg" className="max-w-md text-center animate-fade-in-up">
-          <div className="w-20 h-20 bg-black text-purple border-brutal mx-auto flex items-center justify-center mb-6 animate-pulse-brutal">
-            <Trophy size={40} />
-          </div>
-          <h2 className="heading-brutal text-3xl mb-3">YOU&apos;RE PRO!</h2>
-          <p className="font-mono text-sm mb-6">
-            All premium features are now unlocked. Go build something amazing.
-          </p>
-          <div className="flex gap-3">
-            <Button variant="dark" fullWidth icon={Zap} onClick={() => router.push('/simulator')}>
-              Simulator
-            </Button>
-            <Button variant="outline" fullWidth icon={Rocket} onClick={() => router.push('/dashboard/student')}>
-              Dashboard
-            </Button>
-          </div>
-        </Card>
-      </div>
-    );
-  }
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to initiate payment. Please try again.');
+        return;
+      }
+
+      // Redirect the user to PhonePe checkout
+      window.location.href = data.redirectUrl;
+    } catch {
+      toast.error('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12">
