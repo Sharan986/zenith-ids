@@ -45,7 +45,8 @@ export default function ProSuccessPage() {
             clearInterval(pollRef.current);
           }
         }
-      } catch {
+      } catch (err) {
+        console.error('Payment status poll error:', err);
         // Network error — keep polling
         attemptsRef.current += 1;
         if (attemptsRef.current >= MAX_POLL_ATTEMPTS) {

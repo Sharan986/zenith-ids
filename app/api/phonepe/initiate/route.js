@@ -73,7 +73,7 @@ export async function POST() {
     const paymentPayload = {
       merchantId: PHONEPE_MERCHANT_ID,
       merchantTransactionId,
-      merchantUserId: `USER-${user.id.slice(0, 8)}`,
+      merchantUserId: `USER-${user.id}`,
       amount: PRO_PLAN_AMOUNT_PAISE,
       redirectUrl: `${APP_URL}/pro/success?txnId=${merchantTransactionId}`,
       redirectMode: 'REDIRECT',
